@@ -8,14 +8,16 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from collections import Counter
+import pickle
 
 # Path to the dataset
-dataset_path = 'cv-corpus-17.0-delta-2024-03-15/en'
+#dataset_path = 'cv-corpus-17.0-delta-2024-03-15/en'
+dataset_path = '../../Downloads/en'
 tsv_file_path = os.path.join(dataset_path, 'validated.tsv')
 clips_dir_path = os.path.join(dataset_path, 'clips')
 
 # Read the metadata
-df = pd.read_csv(tsv_file_path, sep='\t')
+df = pd.read_csv(tsv_file_path, sep='\t').sample(frac=0.1, random_state=42)
 
 # Function to convert mp3 file to wav format
 def mp3_to_wav(audio_file_path):
@@ -47,7 +49,7 @@ labels = []
 
 for index, row in df.iterrows():
     file_path = os.path.join(clips_dir_path, str(row['path']))
-    class_label = row['accents']
+    class_label = row['accent']
     data = extract_features(file_path)
     if data is not None:
         features.append(data)
@@ -71,8 +73,17 @@ if len(features) > 1 and len(labels) > 1:
     predictions = model.predict(X_test)
     accuracy = accuracy_score(y_test, predictions)
     print(f'Accuracy: {accuracy * 100:.2f}%')
-else:
-    print("Not enough data to split or train the model.")
+
+    # Save the trained model to disk
+    with open('trained_model.pkl', 'wb') as file:
+        pickle.dump(model, file)
+
+    # Optionally, save LabelEncoder and StandardScaler if you'll need them for preprocessing in prediction
+    with open('label_encoder.pkl', 'wb') as file:
+        pickle.dump(le, file)
+
+    with open('scaler.pkl', 'wb') as file:
+        pickle.dump(scaler, file)
 
 # Print class distribution after labels are populated
 class_distribution = Counter(labels)
